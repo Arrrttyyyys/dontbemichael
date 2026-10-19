@@ -35,7 +35,7 @@ test('(c) the same version never fires twice', () => {
 // (d) a second RC of the SAME version — deliberate, not accidental
 test('(d) 0.4.7-rc.1 -> 0.4.7-rc.2 fires, deliberately', () => {
   // isNewer discards -rc.N, so the two compare EQUAL. That is exactly why the
-  // decision asks "is this a downgrade?" instead of "is this newer?".
+  // release drop needs the prerelease-aware comparison, not isNewer.
   assert.equal(isNewer('0.4.7-rc.2', '0.4.7-rc.1'), false, 'isNewer still ignores -rc.N');
   assert.equal(shouldShowReleaseDrop('0.4.7-rc.1', '0.4.7-rc.2'), true);
   // and the rehearsal hop itself
@@ -44,6 +44,15 @@ test('(d) 0.4.7-rc.1 -> 0.4.7-rc.2 fires, deliberately', () => {
 
 test('a downgrade announces nothing', () => {
   assert.equal(shouldShowReleaseDrop('0.4.8', '0.4.7'), false);
+});
+
+test('prerelease downgrades announce nothing', () => {
+  assert.equal(shouldShowReleaseDrop('0.4.7-rc.2', '0.4.7-rc.1'), false);
+  assert.equal(shouldShowReleaseDrop('0.4.7', '0.4.7-rc.1'), false);
+});
+
+test('a prerelease upgrade to the final release still announces it', () => {
+  assert.equal(shouldShowReleaseDrop('0.4.7-rc.2', '0.4.7'), true);
 });
 
 // ── the updater wires the decision, and keeps the stamp unconditional ────────

@@ -143,19 +143,14 @@ export function isNewer(candidate: string, current: string): boolean {
  *   - version moved forward  -> true.  The ordinary upgrade.
  *   - version moved BACKWARD -> false. A downgrade has nothing new to announce.
  *
- * Note the forward test is "not a downgrade", not `isNewer(current, previous)`.
- * `isNewer` compares major.minor.patch only and discards `-rc.N`, so a second
- * RC of the same version (0.4.7-rc.1 -> 0.4.7-rc.2) is neither newer nor older;
- * asking "is this a downgrade?" lets that case through DELIBERATELY (a new
- * build does have new notes) while still refusing a real downgrade. Doing it
- * here rather than by teaching `isNewer` about prereleases keeps the change off
- * the Claude CLI and model version checks, which still read `isNewer`. The
- * badge and pending state order releases with `isNewerRelease` instead.
+ * Use the same prerelease order as the update badge: a later RC or the final
+ * release has new notes, but an earlier RC does not. Keep `isNewer` unchanged
+ * because the Claude CLI and model version checks deliberately ignore suffixes.
  */
 export function shouldShowReleaseDrop(previous: string | null, current: string): boolean {
   if (previous === current) return false;
   if (previous === null) return true;
-  return !isNewer(previous, current);
+  return !isNewerRelease(previous, current);
 }
 
 /** Download percentages arrive as floats and, on a resumed/differential
