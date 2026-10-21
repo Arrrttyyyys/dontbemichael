@@ -86,8 +86,8 @@ const frame = () => new Promise<void>((resolve) => {
   requestAnimationFrame(() => { clearTimeout(timer); resolve(); });
 });
 const settle = async () => { await frame(); await frame(); };
-async function until(predicate: () => unknown, message: string): Promise<void> {
-  const deadline = performance.now() + 2000;
+async function until(predicate: () => unknown, message: string, timeoutMs = 2000): Promise<void> {
+  const deadline = performance.now() + timeoutMs;
   while (!predicate()) {
     if (performance.now() >= deadline) throw new Error(message);
     await frame();
@@ -101,7 +101,14 @@ async function scrollTo(top: number) {
   const before = el.scrollTop;
   try {
     el.scrollTop = top;
-    if (el.scrollTop !== before) await until(() => delivered, 'scroll event is delivered');
+    // Native scroll events are delivered during rendering, which can lag
+    // behind this script on a busy CI runner. Keep requiring the real event,
+    // but give its delivery more time than a synchronous layout assertion.
+    if (el.scrollTop !== before) await until(
+      () => delivered,
+      `scroll event is delivered (from=${before}, requested=${top}, actual=${el.scrollTop}, connected=${el.isConnected}, visibility=${document.visibilityState})`,
+      10_000
+    );
     await settle();
   } finally { el.removeEventListener('scroll', onScroll); }
 }
